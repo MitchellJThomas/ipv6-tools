@@ -1,7 +1,8 @@
 # IPv6 Tools
 
-[![Java](https://img.shields.io/badge/Java-17-red.svg)](https://www.oracle.com/java/)
-[![Python](https://img.shields.io/badge/Python-3.10-blue.svg)](https://www.python.org/)
+[![Java](https://img.shields.io/badge/Java-23-red.svg)](https://www.oracle.com/java/)
+[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-27.5-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A collection of tools for testing and experimenting with IPv6 connectivity. This project provides a simple client-server implementation to verify IPv6 communication.
@@ -19,8 +20,9 @@ A collection of tools for testing and experimenting with IPv6 connectivity. This
 
 ## 📋 Prerequisites
 
-- Java 17 or higher
-- Python 3.10 or higher
+- Java 23 or higher
+- Python 3.13 or higher
+- Docker 27.5 or higher
 - IPv6-enabled network environment
 - Basic understanding of IPv6 addressing
 
@@ -32,7 +34,32 @@ git clone https://github.com/yourusername/ipv6-tools.git
 cd ipv6-tools
 ```
 
+## 🐳 Docker
+
+1. Build the container images.
+```bash
+./build.sh
+```
+
 ## 💻 Usage
+
+### Container Versions
+
+The `IPv6` tester utilities may be run in either server or client mode.
+
+#### Running as Server
+
+```bash
+docker run --rm -it ipv6tester-java
+```
+
+#### Running as Client
+
+```bash
+docker run --rm -it ipv6tester-java IPv6Tester.java client
+```
+
+The pattern is similar for the Python utility. Invoke the Python container (`ipv6tester-python`) and substitute `ipv6_tester.py` for `IPv6Tester.java`. Additional address and port parameters apply as below.
 
 ### Java Version
 

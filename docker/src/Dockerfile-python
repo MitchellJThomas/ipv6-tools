@@ -1,0 +1,11 @@
+FROM cgr.dev/chainguard/python
+
+WORKDIR /app
+
+COPY ../python/src/ipv6_tester.py /app
+
+ENTRYPOINT [ "python" ]
+
+EXPOSE 8080
+
+CMD [ "ipv6_tester.py", "server" ]
