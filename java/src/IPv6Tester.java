@@ -173,7 +173,7 @@ public class IPv6Tester {
 
                 for (int i = 0; i < 20; i++) {
                     // Send message to server
-                    String message = "Hello from IPv6 client at " + LocalDateTime.now().format(formatter);
+                    String message = "Hello from Java IPv6 client at " + LocalDateTime.now().format(formatter);
                     out.println(message);
                     System.out.println("Sent to server: " + message);
 

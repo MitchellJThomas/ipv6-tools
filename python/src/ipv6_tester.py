@@ -146,7 +146,7 @@ class IPv6Tester:
                 for i in range(20):
                     # Send message to server
                     timestamp = datetime.datetime.now().strftime(self.DATE_FORMAT)
-                    message = f"Hello from IPv6 client at {timestamp}\n"
+                    message = f"Hello from Python IPv6 client at {timestamp}\n"
                     writer.write(message.encode())
                     await writer.drain()
                     self.logger.info(f"Sent to server: {message.strip()}")
