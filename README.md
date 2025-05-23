@@ -3,6 +3,7 @@
 [![Java](https://img.shields.io/badge/Java-23-red.svg)](https://www.oracle.com/java/)
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-27.5-blue.svg)](https://www.docker.com/)
+[![Rust](https://img.shields.io/badge/Rust-1.84.0-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A collection of tools for testing and experimenting with IPv6 connectivity. This project provides a simple client-server implementation to verify IPv6 communication.
@@ -109,6 +110,36 @@ To see all available IPv6 addresses on your system, simply run the tool without 
 python python/src/ipv6_tester.py
 ```
 
+### Rust Version
+
+The Rust version provides the same functionality using async/await patterns. Here are the usage patterns:
+
+#### Running as Server
+
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester server [--address <ipv6_address>] [--port <port>]
+```
+
+#### Running as Client
+
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester client [--address <ipv6_address>] [--port <port>]
+```
+
+#### Viewing Available IPv6 Addresses
+
+To see all available IPv6 addresses on your system, simply run the tool without any arguments:
+
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester
+```
+
 ## 📝 Examples
 
 ### Java Examples
@@ -153,6 +184,36 @@ python python/src/ipv6_tester.py server 2001:db8:1234:5678::1 8888
 4. Connect a client to the server:
 ```bash
 python python/src/ipv6_tester.py client 2001:db8:1234:5678::1 8888
+```
+
+### Rust Examples
+
+1. View available IPv6 addresses and usage help:
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester
+```
+
+2. Start a server on the default IPv6 address (::1) and port (8080):
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester server
+```
+
+3. Start a server on a specific IPv6 address and port:
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester server --address 2001:db8:1234:5678::1 --port 8888
+```
+
+4. Connect a client to the server:
+```bash
+cd rust
+cargo build --release
+./target/release/ipv6_tester client --address 2001:db8:1234:5678::1 --port 8888
 ```
 
 ## 🔍 How it Works
