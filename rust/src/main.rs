@@ -1,14 +1,16 @@
 use anyhow::{Context, Result};
 use log::{error, info};
-use std::net::SocketAddrV6;
+use std::net::{Ipv6Addr, SocketAddrV6};
 use structopt::StructOpt;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use pnet::datalink;
 use chrono::Local;
 
 const DEFAULT_PORT: u16 = 8080;
 const DEFAULT_ADDR: &str = "::1";
+// Define a maximum line length to prevent potential DoS from overly long messages.
+const MAX_LINE_LENGTH: usize = 4096;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "ipv6_tester", about = "IPv6 testing tool for client/server communication")]
@@ -82,22 +84,59 @@ impl IPv6Tester {
     }
 
     async fn handle_client(stream: TcpStream, server_addr: &str) -> Result<()> {
-        let (mut reader, mut writer) = stream.into_split();
-        let mut buffer = [0u8; 1024];
+        // Split the stream into a reader and writer for managing I/O.
+        let (reader, mut writer) = tokio::io::split(stream);
+        // Use BufReader for efficient, newline-delimited reading.
+        // This improves message framing by processing data line by line.
+        let mut buf_reader = BufReader::new(reader);
+        let mut line_buffer = String::new();
 
+        // Loop to continuously read messages from the client.
         loop {
-            match reader.read(&mut buffer).await {
-                Ok(0) => {
+            line_buffer.clear();
+            // Read a line from the client. Newline characters demarcate messages.
+            match buf_reader.read_line(&mut line_buffer).await {
+                Ok(0) => { // Connection closed (EOF)
                     info!("Client disconnected");
                     break;
                 }
-                Ok(n) => {
-                    let message = String::from_utf8_lossy(&buffer[..n]);
+                Ok(bytes_read) if bytes_read > 0 => { // Successfully read a line with content.
+                    // Check if the received line exceeds the defined maximum length.
+                    // This is a security measure to prevent resource exhaustion (DoS) from malicious clients.
+                    if line_buffer.len() > MAX_LINE_LENGTH {
+                        error!(
+                            "Client sent message exceeding max length of {} bytes (read {}). Closing connection.",
+                            MAX_LINE_LENGTH, line_buffer.len()
+                        );
+                        // Optionally send a message to the client
+                        let error_response = "Error: Message too long. Closing connection.\n";
+                        if writer.write_all(error_response.as_bytes()).await.is_err() {
+                            // Log if sending this specific error fails, but don't let it panic
+                            error!("Failed to send 'message too long' error to client.");
+                        }
+                        // Ensure flush is attempted, but don't let its error break normal error flow for "message too long"
+                        writer.flush().await.ok();
+                        break; // Close connection
+                    }
+
+                    let message = line_buffer.trim_end_matches(|c| c == '\r' || c == '\n');
+
+                    if message.is_empty() {
+                        // This handles lines that become empty after trimming (e.g., client just sent "\n")
+                        // Or if the line_buffer itself was empty but read_line returned >0 (should not happen with current logic)
+                        // info!("Received empty line from client after trim."); // Optional: log if needed for debugging
+                        continue; // Skip processing for effectively empty lines
+                    }
+
                     info!("Received from client: {}", message);
 
-                    let response = format!("Rust Server [{}] received: {}", server_addr, message);
+                    let response = format!("Rust Server [{}] received: {}\n", server_addr, message);
                     writer.write_all(response.as_bytes()).await?;
                     writer.flush().await?;
+                }
+                Ok(_) => { // bytes_read == 0, but not caught by Ok(0) - defensive, should be Ok(0)
+                    info!("Client disconnected (or sent empty payload).");
+                    break;
                 }
                 Err(e) => {
                     error!("Error reading from client: {}", e);
@@ -105,7 +144,6 @@ impl IPv6Tester {
                 }
             }
         }
-
         Ok(())
     }
 
@@ -173,8 +211,19 @@ impl IPv6Tester {
     }
 
     async fn run(&self) -> Result<()> {
+        let address_str = self.args.address.as_deref().unwrap_or(DEFAULT_ADDR);
+        // Parse the address string into an Ipv6Addr.
+        // This approach handles potential parsing errors gracefully by returning an error
+        // rather than panicking, which improves robustness.
+        let ip_addr: Ipv6Addr = match address_str.parse() {
+            Ok(ip) => ip,
+            Err(e) => {
+                return Err(anyhow::anyhow!("Invalid IPv6 address '{}'. {}", address_str, e));
+            }
+        };
+
         let addr = SocketAddrV6::new(
-            self.args.address.as_deref().unwrap_or(DEFAULT_ADDR).parse()?,
+            ip_addr,
             self.args.port.unwrap_or(DEFAULT_PORT),
             0,
             0
@@ -205,6 +254,9 @@ fn get_available_ipv6_addresses() -> Result<Vec<(String, String)>> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize logger. Be mindful of log verbosity and content in production environments,
+    // especially if handling sensitive data or if logs are accessible to unintended parties.
+    // For this tool, default anyhow error messages are generally acceptable for debugging.
     env_logger::init();
     
     let args = match Args::from_args_safe() {
